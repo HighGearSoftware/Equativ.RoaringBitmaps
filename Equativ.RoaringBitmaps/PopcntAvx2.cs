@@ -1,3 +1,4 @@
+#if NET
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -95,3 +96,4 @@ internal static class PopcntAvx2
                (ulong)total.GetElement(3);
     }
 }
+#endif

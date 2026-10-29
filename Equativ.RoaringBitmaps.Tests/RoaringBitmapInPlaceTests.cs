@@ -145,7 +145,7 @@ public class RoaringBitmapInPlaceTests
         acc.AndInPlace(RoaringBitmap.Create(Range(0, (1 << 16) + 10500)));
         expected.IntersectWith(Range(0, (1 << 16) + 10500));
 
-        Assert.Equal(expected.Order(), acc.ToArray());
+        Assert.Equal(expected.OrderBy(x => x), acc.ToArray());
         Assert.Equal(RoaringBitmap.Create(sourceValues), source);
     }
 

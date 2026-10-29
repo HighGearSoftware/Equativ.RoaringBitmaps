@@ -1,3 +1,4 @@
+#if NET
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -85,3 +86,4 @@ internal static class PopcntAvx512
         return sum128.GetElement(0) + sum128.GetElement(1);
     }
 }
+#endif

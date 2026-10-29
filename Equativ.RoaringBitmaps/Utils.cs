@@ -1,15 +1,28 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+#if NET
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace Equativ.RoaringBitmaps;
 
 internal static class Utils
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static T[] AllocateUninitializedArray<T>(int length)
+    {
+#if NET
+        return GC.AllocateUninitializedArray<T>(length);
+#else
+        return new T[length];
+#endif
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int Popcnt(ulong[] longs)
     {
+#if NET
         if (AdvSimd.IsSupported)
         {
             return (int)PopcntNeon.Popcnt(longs.AsSpan());
@@ -23,7 +36,8 @@ internal static class Utils
         // {
         //     return (int)PopcntAvx512.Popcnt(longs.AsSpan());
         // }
-        
+#endif
+
         return Popcnt64.Popcnt(longs);
     }
     

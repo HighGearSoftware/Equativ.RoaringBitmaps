@@ -214,7 +214,7 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
     /// <param name="other">RoaringBitmap, left untouched</param>
     public void OrInPlace(RoaringBitmap other)
     {
-        ArgumentNullException.ThrowIfNull(other);
+        if (other is null) throw new ArgumentNullException(nameof(other));
         _highLowContainer.OrInPlace(other._highLowContainer);
     }
 
@@ -224,7 +224,7 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
     /// <param name="other">RoaringBitmap, left untouched</param>
     public void AndInPlace(RoaringBitmap other)
     {
-        ArgumentNullException.ThrowIfNull(other);
+        if (other is null) throw new ArgumentNullException(nameof(other));
         _highLowContainer.AndInPlace(other._highLowContainer);
     }
 
@@ -234,7 +234,7 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
     /// <param name="other">RoaringBitmap, left untouched</param>
     public void XorInPlace(RoaringBitmap other)
     {
-        ArgumentNullException.ThrowIfNull(other);
+        if (other is null) throw new ArgumentNullException(nameof(other));
         _highLowContainer.XorInPlace(other._highLowContainer);
     }
 
@@ -244,7 +244,7 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
     /// <param name="other">RoaringBitmap, left untouched</param>
     public void AndNotInPlace(RoaringBitmap other)
     {
-        ArgumentNullException.ThrowIfNull(other);
+        if (other is null) throw new ArgumentNullException(nameof(other));
         _highLowContainer.AndNotInPlace(other._highLowContainer);
     }
 

@@ -111,8 +111,8 @@ public class ArrayContainerArrayOpsTests
         var random = new Random(42);
         for (var iteration = 0; iteration < 500; iteration++)
         {
-            var set1 = Enumerable.Range(0, random.Next(0, 300)).Select(_ => (ushort) random.Next(0, 400)).Distinct().Order().ToArray();
-            var set2 = Enumerable.Range(0, random.Next(0, 300)).Select(_ => (ushort) random.Next(0, 400)).Distinct().Order().ToArray();
+            var set1 = Enumerable.Range(0, random.Next(0, 300)).Select(_ => (ushort) random.Next(0, 400)).Distinct().OrderBy(x => x).ToArray();
+            var set2 = Enumerable.Range(0, random.Next(0, 300)).Select(_ => (ushort) random.Next(0, 400)).Distinct().OrderBy(x => x).ToArray();
             var union = new ushort[set1.Length + set2.Length];
             var xor = new ushort[set1.Length + set2.Length];
             set1.CopyTo(union, 0);
@@ -121,8 +121,8 @@ public class ArrayContainerArrayOpsTests
             var unionLength = Utils.MergeArraysInPlace(union, set1.Length, set2, set2.Length, false);
             var xorLength = Utils.MergeArraysInPlace(xor, set1.Length, set2, set2.Length, true);
 
-            Assert.Equal(set1.Union(set2).Order(), union.Take(unionLength));
-            Assert.Equal(set1.Except(set2).Union(set2.Except(set1)).Order(), xor.Take(xorLength));
+            Assert.Equal(set1.Union(set2).OrderBy(x => x), union.Take(unionLength));
+            Assert.Equal(set1.Except(set2).Union(set2.Except(set1)).OrderBy(x => x), xor.Take(xorLength));
         }
     }
 
