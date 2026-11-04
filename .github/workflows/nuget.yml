@@ -2,33 +2,45 @@ name: Publish NuGet Package
 
 on:
   push:
-    tags: 
+    tags:
       - '[0-9]+.[0-9]+.[0-9]+'
+
+concurrency:
+  group: publish-nuget-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build and Publish
+    runs-on: "self-hosted"
     env:
       VERSION: ${{ github.ref_name }}
+
+    defaults:
+      run:
+        shell: cmd
+
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout Commit
+      uses: actions/checkout@v6
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v2
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
-        
+
     - name: Restore
       run: dotnet restore
 
     - name: Build
-      run: dotnet build --no-restore --configuration Release /p:Version=$VERSION
+      run: dotnet build --no-restore --configuration Release /p:Version=%VERSION%
 
     - name: Test
       run: dotnet test --no-build --verbosity normal --configuration Release
 
     - name: Pack
-      run: dotnet pack --output nupkgs --no-restore --no-build /p:PackageVersion=$VERSION
+      run: dotnet pack --output nupkgs --no-restore --no-build --configuration Release /p:PackageVersion=%VERSION%
 
+    # Push the NuGet package to our internal repo
     - name: Push
-      run: dotnet nuget push nupkgs/*.nupkg -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+      run: dotnet nuget push "nupkgs\*.nupkg" --api-key "${{ secrets.NUGET_PUBLISH_API_KEY }}" --source "${{ secrets.NUGET_SOURCE_URL }}"

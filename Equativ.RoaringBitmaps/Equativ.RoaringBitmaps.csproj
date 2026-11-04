@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
     <LangVersion>12.0</LangVersion>
+    <!-- Distinct ID so our fork's package isn't confused with upstream's Equativ.RoaringBitmaps -->
+    <PackageId>HighGear.Equativ.RoaringBitmaps</PackageId>
     <PackageProjectUrl>https://github.com/equativ/Equativ.RoaringBitmaps</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/equativ/Equativ.RoaringBitmaps/blob/main/LICENSE</PackageLicenseUrl>
     <PackageTags>Equativ.RoaringBitmaps</PackageTags>
