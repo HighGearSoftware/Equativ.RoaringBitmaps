@@ -15,6 +15,8 @@ internal class RoaringArray : IEquatable<RoaringArray>
     private ushort[] _keys;
     private int _size;
     private Container[] _values;
+    // Incremented by every in-place operation, so that enumerators can detect that the array changed under them
+    private int _version;
 
     /// <summary>
     /// Use List directly, because the enumerator is a struct
@@ -52,15 +54,32 @@ internal class RoaringArray : IEquatable<RoaringArray>
         Cardinality = cardinality;
     }
     
+    /// <summary>
+    /// Enumerates the values lazily. Like List&lt;T&gt;, it throws InvalidOperationException if an in-place
+    /// operation modifies this array during the enumeration.
+    /// </summary>
     public IEnumerable<int> AsEnumerable()
     {
+        var version = _version;
         for (var i = 0; i < _size; i++)
         {
             ushort key = _keys[i];
             int shiftedKey = key << 16;
             var container = _values[i];
             foreach (var item in container.AsEnumerable(shiftedKey))
+            {
+                ThrowIfModified(version);
                 yield return item;
+            }
+        }
+        ThrowIfModified(version);
+    }
+
+    private void ThrowIfModified(int version)
+    {
+        if (_version != version)
+        {
+            throw new InvalidOperationException("Collection was modified; enumeration operation may not execute.");
         }
     }
 
@@ -440,6 +459,7 @@ internal class RoaringArray : IEquatable<RoaringArray>
 
     private void MergeInPlace(RoaringArray y, bool xor)
     {
+        _version++;
         if (ReferenceEquals(this, y))
         {
             if (xor)
@@ -540,6 +560,7 @@ internal class RoaringArray : IEquatable<RoaringArray>
     /// </summary>
     private void RetainInPlace(RoaringArray y, bool andNot)
     {
+        _version++;
         if (ReferenceEquals(this, y))
         {
             if (andNot)
@@ -593,6 +614,7 @@ internal class RoaringArray : IEquatable<RoaringArray>
 
     public void NotInPlace()
     {
+        _version++;
         // every key of the 16 bit space is in the result, except those whose container is full
         var resultSize = Container.MaxCapacity;
         for (var i = 0; i < _size; i++)

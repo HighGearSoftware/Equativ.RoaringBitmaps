@@ -13,7 +13,8 @@ namespace Equativ.RoaringBitmaps;
 /// The *InPlace methods modify this bitmap instead, which avoids most of the allocations. Bitmaps may share
 /// storage behind the scenes (copy on write), so modifying one bitmap in place never affects another one.
 /// A bitmap can be read from several threads at once, but an in-place operation must not run concurrently
-/// with any other access to the same bitmap.
+/// with any other access to the same bitmap. Enumeration is lazy, and modifying a bitmap in place while it is
+/// being enumerated makes the enumerator throw InvalidOperationException, like List&lt;T&gt;.
 /// </summary>
 public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
 {
