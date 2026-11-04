@@ -314,7 +314,7 @@ internal class BitmapContainer : Container, IEquatable<BitmapContainer>
         return bc != null && Equals(bc);
     }
 
-    public override void EnumerateFill(List<int> list, int key)
+    public override IEnumerable<int> AsEnumerable(int key)
     {
         for (var k = 0; k < BitmapLength; k++)
         {
@@ -324,7 +324,7 @@ internal class BitmapContainer : Container, IEquatable<BitmapContainer>
             {
                 var t = bitset & (~bitset + 1);
                 var result = (ushort) (shiftedK + BitOperations.PopCount(t - 1));
-                list.Add(key | result);
+                yield return key | result;
                 bitset ^= t;
             }
         }

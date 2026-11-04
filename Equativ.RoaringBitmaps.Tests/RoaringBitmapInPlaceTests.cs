@@ -180,8 +180,7 @@ public class RoaringBitmapInPlaceTests
         Assert.Equal(Range(1, 4096), fullArray.ToArray());
         Assert.Equal(Container.MaxCapacity, BitmapContainer.One.Cardinality);
         Assert.Equal(Container.MaxSize, ArrayContainer.One.Cardinality);
-        var one = new List<int>();
-        ArrayContainer.One.EnumerateFill(one, 0);
+        var one = ArrayContainer.One.AsEnumerable(0).ToList();
         Assert.Equal(Range(0, 4096), one);
     }
 

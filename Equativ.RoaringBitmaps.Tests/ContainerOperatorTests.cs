@@ -8,9 +8,7 @@ public class ContainerOperatorTests
 {
     private static List<int> ToList(Container c)
     {
-        var list = new List<int>();
-        c.EnumerateFill(list, 0);
-        return list;
+        return c.AsEnumerable(0).ToList();
     }
 
     [Fact]

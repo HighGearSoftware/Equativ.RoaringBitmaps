@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Equativ.RoaringBitmaps;
@@ -40,7 +41,7 @@ internal abstract class Container : IEquatable<Container>
 
     protected abstract bool EqualsInternal(Container other);
 
-    public abstract void EnumerateFill(List<int> list, int key);
+    public abstract IEnumerable<int> AsEnumerable(int key);
 
     public static Container operator |(Container x, Container y)
     {

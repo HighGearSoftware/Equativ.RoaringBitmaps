@@ -27,7 +27,7 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
 
     public IEnumerator<int> GetEnumerator()
     {
-        return ToArray().GetEnumerator();
+        return _highLowContainer.AsEnumerable().GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -42,7 +42,10 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
     public List<int> ToArray()
     {
         var list = new List<int>((int)Cardinality);
-        _highLowContainer.EnumerateFill(list);
+        foreach (var item in _highLowContainer.AsEnumerable())
+        {
+            list.Add(item);
+        }
         return list;
     }
     

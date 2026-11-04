@@ -52,14 +52,15 @@ internal class RoaringArray : IEquatable<RoaringArray>
         Cardinality = cardinality;
     }
     
-    public void EnumerateFill(List<int> list)
+    public IEnumerable<int> AsEnumerable()
     {
         for (var i = 0; i < _size; i++)
         {
             ushort key = _keys[i];
             int shiftedKey = key << 16;
             var container = _values[i];
-            container.EnumerateFill(list, shiftedKey);
+            foreach (var item in container.AsEnumerable(shiftedKey))
+                yield return item;
         }
     }
 
