@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -90,7 +91,8 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
     /// <returns>RoaringBitmap</returns>
     public static RoaringBitmap Create(params int[] values)
     {
-        return Create(values.AsEnumerable());
+        if (values is null) throw new ArgumentNullException(nameof(values));
+        return Create((ReadOnlySpan<int>) values);
     }
 
     /// <summary>
@@ -113,39 +115,111 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
     }
 
     /// <summary>
-    /// Creates a new RoaringBitmap from an existing list of integers
+    /// Creates a new RoaringBitmap from an existing list of integers, which is not mutated.
     /// </summary>
     /// <param name="values">List of integers</param>
     /// <returns>RoaringBitmap</returns>
     public static RoaringBitmap Create(IEnumerable<int> values)
     {
-        var data = values as int[] ?? values.ToArray();
-        if (data.Length == 0)
+        if (values is null) throw new ArgumentNullException(nameof(values));
+        if (values is int[] array)
         {
-            return new RoaringBitmap(new RoaringArray(0, new List<ushort>(), new List<Container>()));
+            return Create((ReadOnlySpan<int>) array);
+        }
+        var chunk = ArrayPool<int>.Shared.Rent(CreateChunkSize);
+        try
+        {
+            RoaringArray? result = null;
+            var count = 0;
+            foreach (var value in values)
+            {
+                chunk[count++] = value;
+                if (count == CreateChunkSize)
+                {
+                    result = AddChunk(result, chunk, count);
+                    count = 0;
+                }
+            }
+            return new RoaringBitmap(AddChunk(result, chunk, count));
+        }
+        finally
+        {
+            ArrayPool<int>.Shared.Return(chunk);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new RoaringBitmap from a span of integers, which is left untouched
+    /// </summary>
+    /// <param name="values">Span of integers</param>
+    /// <returns>RoaringBitmap</returns>
+    public static RoaringBitmap Create(ReadOnlySpan<int> values)
+    {
+        var chunkSize = Math.Min(values.Length, CreateChunkSize);
+        var chunk = ArrayPool<int>.Shared.Rent(chunkSize);
+        try
+        {
+            RoaringArray? result = null;
+            for (var start = 0; start < values.Length; start += chunkSize)
+            {
+                var count = Math.Min(chunkSize, values.Length - start);
+                values.Slice(start, count).CopyTo(chunk);
+                result = AddChunk(result, chunk, count);
+            }
+            return new RoaringBitmap(result ?? FromChunk(chunk, 0));
+        }
+        finally
+        {
+            ArrayPool<int>.Shared.Return(chunk);
+        }
+    }
+
+    // Values are copied into pooled chunks of this many integers to be sorted. It is a power of two, so that the pool
+    // hands out arrays of exactly this size: 64 KB, which stays below the large object heap threshold.
+    private const int CreateChunkSize = 16384;
+
+    private static RoaringArray AddChunk(RoaringArray? result, int[] chunk, int count)
+    {
+        var chunkArray = FromChunk(chunk, count);
+        if (result is null)
+        {
+            return chunkArray;
+        }
+        result.OrInPlace(chunkArray);
+        return result;
+    }
+
+    /// <summary>
+    /// Creates a RoaringArray from the first count integers of chunk, which are reordered in the process
+    /// </summary>
+    private static RoaringArray FromChunk(int[] chunk, int count)
+    {
+        if (count == 0)
+        {
+            return new RoaringArray(0, new List<ushort>(), new List<Container>());
         }
 
         // Container keys are the high 16 bits of each value, and they must be in ascending order.
         // Negative values have the highest keys (their sign bit is set), so we sort the data as unsigned
         // integers to keep the keys in ascending order. After we flip the sign bit, a signed sort puts the
         // values in unsigned order, so we flip it, sort, and flip it back.
-        for (var i = 0; i < data.Length; i++)
+        for (var i = 0; i < count; i++)
         {
-            data[i] ^= int.MinValue;
+            chunk[i] ^= int.MinValue;
         }
-        Array.Sort(data);
-        for (var i = 0; i < data.Length; i++)
+        Array.Sort(chunk, 0, count);
+        for (var i = 0; i < count; i++)
         {
-            data[i] ^= int.MinValue;
+            chunk[i] ^= int.MinValue;
         }
 
         // In-place deduplication (two pointers technique)
         var uniqueCount = 1;
-        for (var i = 1; i < data.Length; i++)
+        for (var i = 1; i < count; i++)
         {
-            if (data[i] != data[uniqueCount - 1])
+            if (chunk[i] != chunk[uniqueCount - 1])
             {
-                data[uniqueCount++] = data[i];
+                chunk[uniqueCount++] = chunk[i];
             }
         }
 
@@ -155,28 +229,28 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
 
         while (index < uniqueCount)
         {
-            var hb = Utils.HighBits(data[index]);
+            var hb = Utils.HighBits(chunk[index]);
             var start = index;
             index++;
-            while (index < uniqueCount && Utils.HighBits(data[index]) == hb)
+            while (index < uniqueCount && Utils.HighBits(chunk[index]) == hb)
             {
                 index++;
             }
 
-            var count = index - start;
-            var lows = new ushort[count];
-            for (var j = 0; j < count; j++)
+            var containerCount = index - start;
+            var lows = new ushort[containerCount];
+            for (var j = 0; j < containerCount; j++)
             {
-                lows[j] = Utils.LowBits(data[start + j]);
+                lows[j] = Utils.LowBits(chunk[start + j]);
             }
 
             keys.Add(hb);
-            containers.Add(count > Container.MaxSize
+            containers.Add(containerCount > Container.MaxSize
                 ? BitmapContainer.Create(lows)
                 : ArrayContainer.Create(lows));
         }
 
-        return new RoaringBitmap(new RoaringArray(keys.Count, keys, containers));
+        return new RoaringArray(keys.Count, keys, containers);
     }
 
     /// <summary>
