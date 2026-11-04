@@ -97,6 +97,81 @@ public class RoaringBitmapTests
         Assert.Equal(rb, deserialized);
     }
 
+    public static TheoryData<int> CreateSizes => new() { 0, 1, 16383, 16384, 16385, 50000, 200000 };
+
+    private static int[] UnsortedValuesWithDuplicates(int size)
+    {
+        // Spread over several keys, with negative values and duplicates that land in different chunks
+        var random = new Random(size);
+        return Enumerable.Range(0, size)
+            .Select(i => i % 7 == 0 ? -random.Next(1 << 18) : random.Next(1 << 18))
+            .ToArray();
+    }
+
+    private static List<int> SortedUnsigned(IEnumerable<int> values)
+    {
+        return values.Distinct().OrderBy(v => (uint) v).ToList();
+    }
+
+    [Theory]
+    [MemberData(nameof(CreateSizes))]
+    public void CreateFromSpanMatchesValues(int size)
+    {
+        var values = UnsortedValuesWithDuplicates(size);
+        var original = values.ToArray();
+
+        var rb = RoaringBitmap.Create(new ReadOnlySpan<int>(values));
+
+        Assert.Equal(SortedUnsigned(values), rb.ToArray());
+        Assert.Equal(original, values);
+    }
+
+    [Theory]
+    [MemberData(nameof(CreateSizes))]
+    public void CreateFromEnumerableMatchesValues(int size)
+    {
+        var values = UnsortedValuesWithDuplicates(size);
+
+        var fromList = RoaringBitmap.Create(values.ToList());
+        var fromLazy = RoaringBitmap.Create(values.Select(v => v));
+
+        Assert.Equal(SortedUnsigned(values), fromList.ToArray());
+        Assert.Equal(fromList, fromLazy);
+    }
+
+    [Fact]
+    public void CreateLeavesArrayUntouched()
+    {
+        var values = new[] { 70000, -1, 5, 70000, 5, 3 };
+
+        RoaringBitmap.Create(values);
+        RoaringBitmap.Create((IEnumerable<int>) values);
+
+        Assert.Equal(new[] { 70000, -1, 5, 70000, 5, 3 }, values);
+    }
+
+    [Fact]
+    public void CreateFromSpanSlice()
+    {
+        var values = new[] { 9, 70000, -1, 5, 70000, 9 };
+
+        var rb = RoaringBitmap.Create(new ReadOnlySpan<int>(values, 1, 4));
+
+        Assert.Equal(new[] { 5, 70000, -1 }, rb.ToArray());
+    }
+
+    [Fact]
+    public void CreateDenseChunksMatchesSingleBuild()
+    {
+        // Every chunk adds to the same dense containers, which then grow in place
+        var values = Enumerable.Range(0, 3).SelectMany(_ => Enumerable.Range(0, 1 << 17)).ToArray();
+
+        var rb = RoaringBitmap.Create(values);
+
+        Assert.Equal(1L << 17, rb.Cardinality);
+        Assert.Equal(Enumerable.Range(0, 1 << 17), rb.ToArray());
+    }
+
     [Fact]
     public void MixedSignValues()
     {
