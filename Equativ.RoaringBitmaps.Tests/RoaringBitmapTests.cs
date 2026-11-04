@@ -98,6 +98,22 @@ public class RoaringBitmapTests
     }
 
     [Fact]
+    public void MixedSignValues()
+    {
+        // Negative values have the highest keys, and they must be ordered as unsigned integers
+        var first = new[] { -70000, -1, 1, 70000 };
+        var second = new[] { -1, 1, 5 };
+        var rb = RoaringBitmap.Create(first);
+        var rb2 = RoaringBitmap.Create(second);
+
+        Assert.Equal(new[] { 1, 70000, -70000, -1 }, rb.ToArray());
+        Assert.Equal(first.Intersect(second).OrderBy(t => (uint) t), (rb & rb2).ToArray());
+        Assert.Equal(first.Union(second).OrderBy(t => (uint) t), (rb | rb2).ToArray());
+        Assert.Equal(first.Except(second).Union(second.Except(first)).OrderBy(t => (uint) t), (rb ^ rb2).ToArray());
+        Assert.Equal(first.Except(second).OrderBy(t => (uint) t), RoaringBitmap.AndNot(rb, rb2).ToArray());
+    }
+
+    [Fact]
     public void AndDisjunct()
     {
         var firstList = CreateMixedListOne();
