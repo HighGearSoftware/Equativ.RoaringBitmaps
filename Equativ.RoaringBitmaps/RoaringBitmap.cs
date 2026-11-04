@@ -115,7 +115,19 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
             return new RoaringBitmap(new RoaringArray(0, new List<ushort>(), new List<Container>()));
         }
 
+        // Container keys are the high 16 bits of each value, and they must be in ascending order.
+        // Negative values have the highest keys (their sign bit is set), so we sort the data as unsigned
+        // integers to keep the keys in ascending order. After we flip the sign bit, a signed sort puts the
+        // values in unsigned order, so we flip it, sort, and flip it back.
+        for (var i = 0; i < data.Length; i++)
+        {
+            data[i] ^= int.MinValue;
+        }
         Array.Sort(data);
+        for (var i = 0; i < data.Length; i++)
+        {
+            data[i] ^= int.MinValue;
+        }
 
         // In-place deduplication (two pointers technique)
         var uniqueCount = 1;
