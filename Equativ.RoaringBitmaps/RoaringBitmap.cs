@@ -25,6 +25,16 @@ public class RoaringBitmap : IEnumerable<int>, IEquatable<RoaringBitmap>
 
     public long Cardinality => _highLowContainer.Cardinality;
 
+    /// <summary>
+    /// Checks whether a value is in the bitmap, without enumerating it
+    /// </summary>
+    /// <param name="value">Integer</param>
+    /// <returns>True if the bitmap contains the value</returns>
+    public bool Contains(int value)
+    {
+        return _highLowContainer.Contains(value);
+    }
+
     public IEnumerator<int> GetEnumerator()
     {
         return _highLowContainer.AsEnumerable().GetEnumerator();

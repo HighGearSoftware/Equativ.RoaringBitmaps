@@ -158,6 +158,11 @@ internal class ArrayContainer : Container, IEquatable<ArrayContainer>
         return new ArrayContainer(Filter(x._content, x._cardinality, y, false, data), data);
     }
 
+    public bool Contains(ushort x)
+    {
+        return _content.AsSpan(0, _cardinality).BinarySearch(x) >= 0;
+    }
+
     /// <summary>
     /// Copies the values of source that are (contained = true) or are not (contained = false) in the bitmap
     /// to destination, which may be source itself. Returns the number of values copied.

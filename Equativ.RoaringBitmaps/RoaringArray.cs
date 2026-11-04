@@ -114,6 +114,12 @@ internal class RoaringArray : IEquatable<RoaringArray>
         return Utils.AdvanceUntil(_keys.AsSpan(0, _size), index, key);
     }
 
+    public bool Contains(int value)
+    {
+        var index = _keys.AsSpan(0, _size).BinarySearch(Utils.HighBits(value));
+        return index >= 0 && Container.Contains(_values[index], Utils.LowBits(value));
+    }
+
     /// <summary>
     /// A shallow copy: the containers are shared with this array, and marked as such so that neither side
     /// modifies them in place afterwards
