@@ -43,6 +43,12 @@ internal abstract class Container : IEquatable<Container>
 
     public abstract IEnumerable<int> AsEnumerable(int key);
 
+    public static bool Contains(Container x, ushort value)
+    {
+        var xArrayContainer = x as ArrayContainer;
+        return xArrayContainer != null ? xArrayContainer.Contains(value) : ((BitmapContainer) x).Contains(value);
+    }
+
     public static Container operator |(Container x, Container y)
     {
         var xArrayContainer = x as ArrayContainer;
